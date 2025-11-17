@@ -39,8 +39,8 @@ V
 
 技术栈
 
-- 前端界面: Qt6 Widgets + QML (可选)
-- 语音识别: 百度云
+- 前端界面: Qt6 Widgets + QML
+- 语音识别: 讯飞星火
 - 文本翻译: Deepseek
 - 音频采集: Qt Multimedia
 - 网络通信: Qt Network (HTTP/OSC)
