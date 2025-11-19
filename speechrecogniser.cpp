@@ -28,7 +28,7 @@ QString SpeechRecogniser::generateAuthorizationHeader()
     QString apiSecret = config.getXunFeiApiSecret();
 
     if (apiKey.isEmpty() || apiSecret.isEmpty()) {
-        qDebug() << "Error: XunFei API configuration is incomplete";
+        // qDebug() << "Error: XunFei API configuration is incomplete";
         return "";
     }
 
@@ -60,14 +60,14 @@ QString SpeechRecogniser::generateAuthorizationHeader()
 QString SpeechRecogniser::recognizeSpeech(const QVector<float>& audio_data, int sample_rate, int channels)
 {
     if (audio_data.isEmpty()) {
-        qDebug() << "Audio data is empty";
+        // qDebug() << "Audio data is empty";
         return "";
     }
 
     if (config.getXunFeiAppId().isEmpty() ||
         config.getXunFeiApiKey().isEmpty() ||
         config.getXunFeiApiSecret().isEmpty()) {
-        qDebug() << "XunFei API configuration is incomplete";
+        // qDebug() << "XunFei API configuration is incomplete";
         return "Error: API configuration incomplete";
     }
 
@@ -76,14 +76,14 @@ QString SpeechRecogniser::recognizeSpeech(const QVector<float>& audio_data, int 
     bool recognitionCompleted = false;
 
     QObject::connect(&webSocket, &QWebSocket::connected, [&]() {
-        qDebug() << "WebSocket connected, sending audio data...";
+        // qDebug() << "WebSocket connected, sending audio data...";
         sendAudioData(&webSocket, audio_data);
     });
 
     QObject::connect(&webSocket, &QWebSocket::textMessageReceived, [&](const QString& message) {
         QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8());
         if (doc.isNull()) {
-            qDebug() << "Null net package";
+            // qDebug() << "Null net package";
             return;
         }
 
@@ -104,22 +104,6 @@ QString SpeechRecogniser::recognizeSpeech(const QVector<float>& audio_data, int 
 
             if (dataObj.contains("result")) {
                 QJsonObject resultObj = dataObj["result"].toObject();
-
-                if (resultObj.contains("bg")) {
-                    qDebug() << "Begin Time:" << resultObj["bg"].toInt();
-                }
-
-                if (resultObj.contains("ed")) {
-                    qDebug() << "End Time:" << resultObj["ed"].toInt();
-                }
-
-                if (resultObj.contains("ls")) {
-                    qDebug() << "Last Segment:" << resultObj["ls"].toBool();
-                }
-
-                if (resultObj.contains("sn")) {
-                    qDebug() << "Sequence Number:" << resultObj["sn"].toInt();
-                }
 
                 // 解析文本
                 if (resultObj.contains("ws")) {
@@ -144,24 +128,24 @@ QString SpeechRecogniser::recognizeSpeech(const QVector<float>& audio_data, int 
                         } else {
                             recognitionResult = text;
                         }
-                        qDebug() << "Accumulated recognition text:" << recognitionResult;
+                        // qDebug() << "Accumulated recognition text:" << recognitionResult;
                     }
                 }
             }
             if (status == 2) {
-                qDebug() << "Recognition completed";
+                // qDebug() << "Recognition completed";
                 recognitionCompleted = true;
             }
         }
     });
 
     QObject::connect(&webSocket, &QWebSocket::disconnected, [&]() {
-        qDebug() << "WebSocket disconnected";
+        // qDebug() << "WebSocket disconnected";
         recognitionCompleted = true;
     });
 
     QObject::connect(&webSocket, &QWebSocket::errorOccurred, [&](QAbstractSocket::SocketError error) {
-        qDebug() << "WebSocket error:" << webSocket.errorString();
+        // qDebug() << "WebSocket error:" << webSocket.errorString();
         recognitionResult = "Error: " + webSocket.errorString();
         recognitionCompleted = true;
     });
@@ -182,7 +166,7 @@ QString SpeechRecogniser::recognizeSpeech(const QVector<float>& audio_data, int 
     query.addQueryItem("host", "iat-api.xfyun.cn");
     url.setQuery(query);
 
-    qDebug() << "Connecting to XunFei speech recognition...";
+    // qDebug() << "Connecting to XunFei speech recognition...";
     webSocket.open(url);
 
     // 等待识别完成
@@ -207,7 +191,7 @@ QString SpeechRecogniser::recognizeSpeech(const QVector<float>& audio_data, int 
         webSocket.close();
     }
 
-    qDebug() << "Final recognition result:" << recognitionResult;
+    // qDebug() << "Final recognition result:" << recognitionResult;
     return recognitionResult;
 }
 
@@ -258,7 +242,7 @@ void SpeechRecogniser::sendAudioData(QWebSocket* webSocket, const QVector<float>
     QJsonDocument doc(message);
     QString messageStr = QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
 
-    qDebug() << "Sending audio data, size:" << audio_data.size() << "samples";
+    // qDebug() << "Sending audio data, size:" << audio_data.size() << "samples";
     webSocket->sendTextMessage(messageStr);
 
     QJsonObject endData;
@@ -271,5 +255,5 @@ void SpeechRecogniser::sendAudioData(QWebSocket* webSocket, const QVector<float>
     QString endMsgStr = QString::fromUtf8(endDoc.toJson(QJsonDocument::Compact));
     webSocket->sendTextMessage(endMsgStr);
 
-    qDebug() << "Audio data sent";
+    // qDebug() << "Audio data sent";
 }

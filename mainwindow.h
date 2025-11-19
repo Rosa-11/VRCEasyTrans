@@ -33,6 +33,9 @@ private:
 
     void sendToOSC(const QString& text);  // 发送文字到VRChat
 
+    void applyConfigToUi();
+    void applyUiToConfig();
+
 public slots:
     void processAudio();
 

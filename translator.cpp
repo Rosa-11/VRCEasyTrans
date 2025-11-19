@@ -23,7 +23,7 @@ QString Translator::translateText(const QString& text, const QString& targetLang
     QString apiKey = config.getDeepseekApiKey();
 
     if (apiKey.isEmpty()) {
-        qDebug() << "Deepseek API Key is empty";
+        // qDebug() << "Deepseek API Key is empty";
         return "Error: API Key not configured";
     }
 

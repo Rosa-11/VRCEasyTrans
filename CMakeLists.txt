@@ -9,22 +9,23 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Multimedia)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Multimedia)
-find_package(Qt6 REQUIRED COMPONENTS Core Network WebSockets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Multimedia Network WebSockets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Multimedia Network WebSockets)
 
 set(TS_FILES VRChatEasyTrans-AI_zh_CN.ts)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        ${TS_FILES}
-        ConfigManager.h
-        ConfigManager.cpp
-        audiocapture.h
-        audiocapture.cpp
+    main.cpp
+    mainwindow.cpp
+    mainwindow.h
+    mainwindow.ui
+    ${TS_FILES}
+    ConfigManager.h
+    ConfigManager.cpp
+    audiocapture.h
+    audiocapture.cpp
+    speechrecogniser.h speechrecogniser.cpp  # 移至此处
+    translator.h translator.cpp              # 移至此处
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -54,10 +55,27 @@ endif()
 target_link_libraries(VRChatEasyTrans-AI PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Multimedia
-    Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::WebSockets
 )
+
+# 假设 config.ini 在项目根目录（与 CMakeLists.txt 同级）
+set(CONFIG_FILE "${CMAKE_SOURCE_DIR}/config.ini")
+
+# 复制 config.ini 到构建目录（与生成的 .exe 同级）
+add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/config.ini"  # 目标路径（构建目录）
+    COMMAND ${CMAKE_COMMAND} -E copy "${CONFIG_FILE}" "${CMAKE_BINARY_DIR}/config.ini"
+    MAIN_DEPENDENCY "${CONFIG_FILE}"  # 当 config.ini 修改时，自动重新复制
+    COMMENT "Copying config.ini to build directory"
+)
+
+# 将复制操作关联到目标程序，确保编译时自动执行
+add_custom_target(
+    copy_config_file ALL
+    DEPENDS "${CMAKE_BINARY_DIR}/config.ini"
+)
+add_dependencies(VRChatEasyTrans-AI copy_config_file)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

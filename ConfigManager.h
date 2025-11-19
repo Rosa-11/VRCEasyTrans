@@ -5,6 +5,7 @@
 #include <QSettings>
 #include <QObject>
 #include <QVariant>
+#include <QAudioDevice>
 
 class ConfigManager : public QObject
 {
@@ -18,27 +19,40 @@ public:
     // 单例模式访问
     static ConfigManager& instance();
 
-    // QString baiduApiKey;
-    // QString baiduSecretKey;
-    // QString deviceId;
-    // QString baiDuToken;
+    void loadFileToManager();
+    void loadManagerToFile();
 
-    // 对应的getter和setter方法
-    void setXunFeiConfig(const QString& appId, const QString& apiKey, const QString& apiSecret);
+    // getter方法
     QString getXunFeiAppId() const { return xunFeiAppId; }
     QString getXunFeiApiKey() const { return xunFeiApiKey; }
     QString getXunFeiApiSecret() const { return xunFeiApiSecret; }
 
     QString getDeepseekApiKey() const { return DeepseekApiKey; }
 
+    int getAudioDeviceId() const { return audioDeviceId; }
     float getVadThreshold() const { return vadThreshold; }
     int getMinSilenceDuration() const {return minSilenceDuration; }
-    int getSampleRate() const { return sampleRate; }
+    int getSampleRate() const { return 16000; }         // 采样率必须是16000，不设置成员变量
+
+    QString getTargetHost() const { return targetHost; }
+    quint16 getTargetPort() const { return targetPort; }
+
+    int getTargetLanguage() const { return targetLanguage; }
 
 signals:
     void configChanged(const QString& key, const QVariant& value);
 
 private:
+
+    // 声音录制设置
+    int audioDeviceId;  // 设备
+    float vadThreshold;        // 0~1
+    int minSilenceDuration;    // 单位：ms
+
+    // VRChat OSC 配置
+    QString targetHost;
+    quint16 targetPort;
+
     // API 配置
     QString xunFeiAppId;      // 讯飞App ID
     QString xunFeiApiKey;     // 讯飞API Key
@@ -46,12 +60,7 @@ private:
 
     QString DeepseekApiKey;   // Deepseek API Key
 
-    QString targetLanguage;   // 目标翻译语言
-
-    // 声音录制设置
-    float vadThreshold;        // 0~1
-    int minSilenceDuration;    // 单位：ms
-    int sampleRate;            // 单位：Hz
+    int targetLanguage;   // 目标翻译语言
 
 };
 

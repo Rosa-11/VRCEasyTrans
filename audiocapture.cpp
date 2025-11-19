@@ -9,20 +9,12 @@
 #include <cmath>
 #include "ConfigManager.h"
 
-AudioCapture::AudioCapture(int device_index, QObject* parent):
+AudioCapture::AudioCapture(QObject* parent):
     QObject(parent),
     config(ConfigManager::instance())
 {
     this->m_sentenceBuffer.reserve(config.getSampleRate() * 60);
     this->m_shouldStop = false;
-
-    QList<QAudioDevice> list = QMediaDevices::audioInputs();
-    if (device_index >= 0 && device_index < list.size()) {
-        this->audioDevice = list[device_index];
-        qDebug() << "Selected audio device:" << audioDevice.description();
-    } else {
-        this->audioDevice = QMediaDevices::defaultAudioInput();
-    }
 }
 
 AudioCapture::~AudioCapture(){
@@ -43,11 +35,13 @@ bool AudioCapture::cap()
     format.setChannelCount(1);
     format.setSampleFormat(QAudioFormat::Int16);
 
-    QScopedPointer<QAudioSource> audioInput(new QAudioSource(audioDevice, format));
+    QAudioDevice device = QMediaDevices::audioInputs()[config.getAudioDeviceId()];
+
+    QScopedPointer<QAudioSource> audioInput(new QAudioSource(device, format));
     QBuffer buffer;
 
     if (!buffer.open(QIODevice::ReadWrite)) {
-        qWarning() << "Failed to open buffer";
+        // qWarning() << "Failed to open buffer";
         return false;
     }
 
@@ -59,7 +53,7 @@ bool AudioCapture::cap()
     const int speechStartThreshold = 3;
     qint64 lastPos = 0;
 
-    qDebug() << "Listening... (Speak now)";
+    // qDebug() << "Listening... (Speak now)";
 
     audioInput->start(&buffer);
 
@@ -70,7 +64,7 @@ bool AudioCapture::cap()
     QObject::connect(&processTimer, &QTimer::timeout, [&]() {
         // 检查中断标志
         if (m_shouldStop.load()) {
-            qDebug() << "Recording interrupted by user";
+            // qDebug() << "Recording interrupted by user";
             processTimer.stop();
             audioInput->stop();
             buffer.close();
@@ -118,7 +112,7 @@ bool AudioCapture::cap()
                     if (!hasStarted && speechCounter >= speechStartThreshold) {
                         hasStarted = true;
                         isSpeaking = true;
-                        qDebug() << "Speech detected! Recording...";
+                        // qDebug() << "Speech detected! Recording...";
                     } else if (hasStarted) {
                         isSpeaking = true;
                     }
@@ -139,14 +133,14 @@ bool AudioCapture::cap()
                     // 每2秒显示进度
                     if (m_sentenceBuffer.size() % (config.getSampleRate() * 2) == 0) {
                         float duration = m_sentenceBuffer.size() / static_cast<float>(config.getSampleRate());
-                        qDebug() << "Recording..." << QString::number(duration, 'f', 1) << "s, Silence:" << silenceCounter << "ms";
+                        // qDebug() << "Recording..." << QString::number(duration, 'f', 1) << "s, Silence:" << silenceCounter << "ms";
                     }
                 }
 
                 // 检查停止条件
                 if (hasStarted && isSpeaking && silenceCounter >= config.getMinSilenceDuration()) {
                     float duration = m_sentenceBuffer.size() / static_cast<float>(config.getSampleRate());
-                    qDebug() << "Recording complete:" << QString::number(duration, 'f', 1) << "seconds";
+                    // qDebug() << "Recording complete:" << QString::number(duration, 'f', 1) << "seconds";
 
                     processTimer.stop();
                     audioInput->stop();
@@ -159,7 +153,7 @@ bool AudioCapture::cap()
 
         // 保护机制：最长录制30秒
         if (hasStarted && m_sentenceBuffer.size() > config.getSampleRate() * 30) {
-            qDebug() << "Maximum recording time reached (30s)";
+            // qDebug() << "Maximum recording time reached (30s)";
             processTimer.stop();
             audioInput->stop();
             buffer.close();

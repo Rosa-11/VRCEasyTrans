@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include "audiocapture.h"
+#include <QMediaDevices>
 #include <QDebug>
 #include <QTimer>
 #include <QDateTime>
@@ -8,17 +8,23 @@
 
 #include <QUdpSocket>
 
+QString language[] = {"英语", "日语", "韩语", "俄语", "法语", "德语", "西班牙语" };
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , is_running(false)
     , config(ConfigManager::instance())     // 配置类静态实例引用
     , audioTimer(new QTimer(this))
-    , capture(new AudioCapture(0, this))
+    , capture(new AudioCapture(this))
     , translator(new Translator(this))
 
 {
     ui->setupUi(this);
+
+    config.loadFileToManager();             // 从配置文件读取配置到管理类
+
+    applyConfigToUi();                      // 将配置从管理类应用到UI
 
     connect(audioTimer, &QTimer::timeout, this, &MainWindow::processAudio);
 }
@@ -45,25 +51,27 @@ void MainWindow::processAudio()
     }
 
     if (caped) {
-        // 网络IO得到识别文本
-        QString result = recogniser->recognizeSpeech(*(capture->getBuffer()), 16000, 1);
+        QString result = recogniser->recognizeSpeech(*(capture->getBuffer()), config.getSampleRate(), 1);
 
         if (result.isEmpty()) {
-            qDebug() << "mainwindow.cpp: empty Recogntion result";
+            // qDebug() << "mainwindow.cpp: empty Recogntion result";
+            ui->debug->append("请调整静音阈值以减少杂音，确保讲普通话");
             sendToOSC("(...)");
         }
         else {
             sendToOSC(result);
-            QString finaltext = translator->translateText(result, config.targetLanguage);
+            QString finaltext = translator->translateText(result, language[config.getTargetLanguage()]);
             if(finaltext.isEmpty()){
-                qDebug() << "mainwindow.cpp: empty Translation result";
+                // qDebug() << "mainwindow.cpp: empty Translation result";
+                ui->debug->append("Deepseek 表示不会翻译\n");
                 finaltext = "(...)";
             }
             sendToOSC(result + "\n" + finaltext);
         }
     }
     else {
-        qDebug() << "no audio detected";
+        // qDebug() << "no audio detected";
+        ui->debug->append("讲话声音大一点...\n");
     }
 
     if (is_running) {
@@ -86,12 +94,16 @@ void MainWindow::on_launchButton_clicked()
     }
     else{
 
-        // TODO：重新从配置文件加载配置到配置类
+        applyUiToConfig();                  // 将UI修改应用到管理类
+
+        config.loadManagerToFile();         // 将管理类里面的配置写入配置文件
 
         recogniser = new SpeechRecogniser(this);
 
         is_running = true;
         ui->launchButton->setText("停止");
+        ui->debug->clear();
+        ui->debug->append("程序启动\n正在使用设备"+QMediaDevices::audioInputs()[config.audioDeviceId].description());
 
         processAudio();
     }
@@ -99,10 +111,9 @@ void MainWindow::on_launchButton_clicked()
 
 void MainWindow::sendToOSC(const QString& text)
 {
-    // VRChat默认OSC端口（9000）和本地地址
     const QString oscAddress = "/chatbox/input";
-    const QHostAddress targetHost("127.0.0.1");
-    const quint16 targetPort = 9000;
+    const QHostAddress targetHost(config.getTargetHost());
+    const quint16 targetPort = config.getTargetPort();
 
     // OSC协议格式：地址 + 类型标签 + 数据）
     QByteArray oscData;
@@ -136,8 +147,42 @@ void MainWindow::sendToOSC(const QString& text)
     qint64 bytesSent = udpSocket.writeDatagram(oscData, targetHost, targetPort);
 
     if (bytesSent == -1) {
-        qWarning() << "OSC发送失败：" << udpSocket.errorString();
+        // qWarning() << "OSC发送失败：" << udpSocket.errorString();
+        ui->debug->append( "OSC发送失败：" + udpSocket.errorString());
     } else {
-        qDebug() << "OSC发送成功：" << text << "（字节数：" << bytesSent << "）";
+        // qWarning() << "OSC发送成功：" << text << "（字节数：" << bytesSent << "）";
+        ui->debug->append( "OSC：" + text);
     }
+}
+
+// 从ConfigManager初始化UI
+void MainWindow::applyConfigToUi(){
+    QList<QAudioDevice> devicelist = QMediaDevices::audioInputs();
+    for(QAudioDevice i : devicelist){
+        ui->deviceCombo->addItem(i.description());
+    }
+    ui->ApiKeyInput->setText(config.getXunFeiApiKey());
+    ui->SecretKeyInput->setText(config.getXunFeiApiSecret());
+    ui->AppIdInput->setText(config.getXunFeiAppId());
+    ui->DeepseekApiKeyInput->setText(config.getDeepseekApiKey());
+    ui->oscHostInput->setText(config.getTargetHost());
+    ui->oscPortInput->setText(QString::number(config.getTargetPort()));
+    ui->silentTimeInput->setText(QString::number(config.getMinSilenceDuration()));
+    ui->vadInput->setText(QString::number(config.getVadThreshold()*100));
+    ui->languageCombo->setCurrentIndex(config.getTargetLanguage());
+    ui->deviceCombo->setCurrentIndex(config.getAudioDeviceId());
+}
+
+// 将UI应用到ConfigManager
+void MainWindow::applyUiToConfig(){
+    config.xunFeiApiKey = ui->ApiKeyInput->text();
+    config.xunFeiApiSecret = ui->SecretKeyInput->text();
+    config.xunFeiAppId = ui->AppIdInput->text();
+    config.DeepseekApiKey = ui->DeepseekApiKeyInput->text();
+    config.targetHost = ui->oscHostInput->text();
+    config.targetPort = ui->oscPortInput->text().toInt();
+    config.minSilenceDuration = ui->silentTimeInput->text().toInt();
+    config.vadThreshold = ui->vadInput->text().toFloat()/100;
+    config.targetLanguage = ui->languageCombo->currentIndex();
+    config.audioDeviceId = ui->deviceCombo->currentIndex();
 }

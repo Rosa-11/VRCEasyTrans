@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QAudioInput>
-#include <QAudioDevice>
 #include <qaudioformat.h>
 #include <QAudioSource>
 #include <QBuffer>
@@ -18,8 +17,6 @@ class AudioCapture : public QObject
 private:
     // 配置
     ConfigManager& config;
-    // 设备
-    QAudioDevice audioDevice;
 
     // 暂停标志
     std::atomic<bool> m_shouldStop;
@@ -29,17 +26,13 @@ private:
 
 
 public:
-    AudioCapture(int device_index, QObject* parent);
+    AudioCapture(QObject* parent);
     ~AudioCapture();
 
     bool cap();
     void stop();
 
     QVector<float>* getBuffer();
-
-    // 配置参数的setter方法
-    // void setVadThreshold(float threshold) { m_vadThreshold = threshold; }
-    // void setMinSilenceDuration(int ms) { m_minSilenceDuration = ms; }
 
 };
 
