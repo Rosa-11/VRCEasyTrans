@@ -45,11 +45,10 @@
 
 - Deepseek 配置
 1. 注册 Deepseek开放平台：https://platform.deepseek.com
-2. 登陆后点击左边栏的 API kyes
-3. 点击 创建API key。注意，创建后API key只会立刻显示一次，请立即复制保存！将 API key 复制到 VRChatEasyTrans 中对应的Deepseek部分。
+2. 登陆后点击左边栏的 API keys
+3. 点击 创建API key。注意，创建后API key只会立刻显示一次，请立即复制保存！将 API key 复制到 VRChatEasyTrans 中对应的Deepseek的API密钥部分。
 4. 点击左边栏的 用量信息 ，查看账户余额
-5. 没有余额的话点击左边栏 充值
-6. 先充值 10 块钱就行，能用好久
+5. 没有余额的话点击左边栏 充值 。第一次充10块钱就行，能用好久。
 
 --------------------------------------------------
 ### 免责声明
